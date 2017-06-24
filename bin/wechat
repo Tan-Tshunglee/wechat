@@ -16,8 +16,7 @@ require 'wechat/api_loader'
 require 'cgi'
 
 class App < Thor
-  package_name 'Wechat'
-  option :token_file, aliases: '-t', desc: 'File to store access token'
+  class_option :account, aliases: '-a', default: :default, desc: 'Name of Wechat account configuration.'
 
   attr_reader :wechat_api_client
   no_commands do
@@ -26,6 +25,7 @@ class App < Thor
     end
   end
 
+  option :token_file, aliases: '-t', desc: 'File to store access token'
   desc 'callbackip', '获取微信服务器IP地址'
   def callbackip
     puts wechat_api.callbackip
@@ -41,6 +41,7 @@ class App < Thor
   in_corp_api_cmd = Wechat::ApiLoader.with(options).is_a?(Wechat::CorpApi)
 
   if in_corp_api_cmd
+    package_name 'Wechat Enterprise Account'
     desc 'department_create [NAME, PARENT_ID]', '创建部门'
     method_option :parentid, aliases: '-p', desc: '父亲部门id。根部门id为1'
     def department_create(name)
@@ -197,6 +198,35 @@ class App < Thor
       puts wechat_api.message_send openid, text_message
     end
   else
+    package_name 'Wechat Public Account'
+    desc 'wxacode_download [WXA_CODE_PIC_PATH, PATH, WIDTH]', '下载小程序码'
+    def wxacode_download(wxa_code_pic_path, path = 'pages/index/index', width = 430)
+      tmp_file = wechat_api.wxa_get_wxacode(path, width)
+      FileUtils.mv(tmp_file.path, wxa_code_pic_path)
+      puts 'WXA Code File downloaded'
+    end
+
+    desc 'media_uploadnews [MPNEWS_YAML_PATH]', '上传图文消息素材'
+    def media_uploadnews(mpnews_yaml_path)
+      mpnew = YAML.load(File.read(mpnews_yaml_path))
+      puts wechat_api.media_uploadnews(Wechat::Message.new(MsgType: 'uploadnews').mpnews(mpnew[:articles]))
+    end
+
+    desc 'message_mass_delete [MSG_ID]', '删除群发消息'
+    def message_mass_delete(msg_id)
+      puts wechat_api.message_mass_delete(msg_id)
+    end
+
+    desc 'message_mass_preview [WX_NAME, MPNEWS_MEDIA_ID]', '预览图文消息素材'
+    def message_mass_preview(wx_name, mpnews_media_id)
+      puts wechat_api.message_mass_preview(Wechat::Message.to(towxname: wx_name).ref_mpnews(mpnews_media_id))
+    end
+
+    desc 'message_mass_get [MSG_ID]', '查询群发消息发送状态'
+    def message_mass_get(msg_id)
+      puts wechat_api.message_mass_get(msg_id)
+    end
+
     desc 'group_create [GROUP_NAME]', '创建分组'
     def group_create(group_name)
       puts wechat_api.group_create(group_name)
@@ -304,6 +334,13 @@ class App < Thor
   desc 'media [MEDIA_ID, PATH]', '媒体下载'
   def media(media_id, path)
     tmp_file = wechat_api.media(media_id)
+    FileUtils.mv(tmp_file.path, path)
+    puts 'File downloaded'
+  end
+
+  desc 'media_hq [MEDIA_ID, PATH]', '高清音频媒体下载'
+  def media_hq(media_id, path)
+    tmp_file = wechat_api.media_hq(media_id)
     FileUtils.mv(tmp_file.path, path)
     puts 'File downloaded'
   end

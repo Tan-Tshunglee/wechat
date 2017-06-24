@@ -11,6 +11,7 @@ module Wechat
   autoload :ControllerApi, 'wechat/controller_api'
 
   class AccessTokenExpiredError < StandardError; end
+  class InvalidCredentialError < StandardError; end
   class ResponseError < StandardError
     attr_reader :error_code
     def initialize(errcode, errmsg)
@@ -19,12 +20,13 @@ module Wechat
     end
   end
 
-  def self.config
-    ApiLoader.config
+  def self.config(account = :default)
+    ApiLoader.config(account)
   end
 
-  def self.api
-    @wechat_api ||= ApiLoader.with({})
+  def self.api(account = :default)
+    @wechat_apis ||= {}
+    @wechat_apis[account.to_sym] ||= ApiLoader.with(account: account)
   end
 end
 

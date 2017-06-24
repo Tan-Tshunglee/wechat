@@ -29,9 +29,10 @@ module Wechat
     def post_file(path, file, post_header = {})
       request(path, post_header) do |url, header|
         params = header.delete(:params)
+        form_file = file.is_a?(HTTP::FormData::File) ? file : HTTP::FormData::File.new(file)
         httprb.headers(header)
           .post(url, params: params,
-                     form: { media: HTTP::FormData::File.new(file),
+                     form: { media: form_file,
                              hack: 'X' }, # Existing here for http-form_data 1.0.1 handle single param improperly
                      ssl_context: ssl_context)
       end
@@ -42,7 +43,7 @@ module Wechat
     def request(path, header = {}, &_block)
       url_base = header.delete(:base) || base
       as = header.delete(:as)
-      header['Accept'] = 'application/json'
+      header['Accept'] ||= 'application/json'
       response = yield("#{url_base}#{path}", header)
 
       raise "Request not OK, response status #{response.status}" if response.status != 200
@@ -68,8 +69,22 @@ module Wechat
       content_type = response.headers[:content_type]
       parse_as = {
         %r{^application\/json} => :json,
-        %r{^image\/.*} => :file
+        %r{^image\/.*}         => :file,
+        %r{^audio\/.*}         => :file,
+        %r{^voice\/.*}         => :file,
+        %r{^text\/html}        => :xml,
+        %r{^text\/plain}       => :probably_json
       }.each_with_object([]) { |match, memo| memo << match[1] if content_type =~ match[0] }.first || as || :text
+
+      # try to parse response as json, fallback to user-specified format or text if failed
+      if parse_as == :probably_json
+        data = JSON.parse response.body.to_s.gsub(/[\u0000-\u001f]+/, '') rescue nil
+        if data
+          return yield(:json, data)
+        else
+          parse_as = as || :text
+        end
+      end
 
       case parse_as
       when :file
@@ -81,6 +96,8 @@ module Wechat
 
       when :json
         data = JSON.parse response.body.to_s.gsub(/[\u0000-\u001f]+/, '')
+      when :xml
+        data = Hash.from_xml(response.body.to_s)
       else
         data = response.body
       end

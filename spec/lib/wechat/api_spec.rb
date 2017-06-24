@@ -201,6 +201,105 @@ RSpec.describe Wechat::Api do
     end
   end
 
+  describe '#message_mass_sendall' do
+    specify 'will post message/mass/sendall with access_token and mpnews media_id in json' do
+      ref_mpnews = { filter: { is_to_all: false, tag_id: 2 },
+                     send_ignore_reprint: 0,
+                     msgtype: 'mpnews',
+                     mpnews: { media_id: '123dsdajkasd231jhksad' } }
+      result = { errcode: 0, errmsg: 'send job submission success',
+                 msg_id: 34182, msg_data_id: 206227730 }
+      expect(subject.client).to receive(:post).with('message/mass/sendall', ref_mpnews.to_json, params: { access_token: 'access_token' }).and_return(result)
+      expect(subject.message_mass_sendall(Wechat::Message.to_mass(tag_id: 2).ref_mpnews('123dsdajkasd231jhksad'))).to eq(result)
+    end
+    specify 'will post message/mass/sendall with access_token and image media_id in json' do
+      ref_mpnews = { filter: { is_to_all: false, tag_id: 2 },
+                     send_ignore_reprint: 0,
+                     msgtype: 'image',
+                     image: { media_id: '123dsdajkasd231jhksad' } }
+      result = { errcode: 0, errmsg: 'send job submission success',
+                 msg_id: 34182, msg_data_id: 206227730 }
+      expect(subject.client).to receive(:post).with('message/mass/sendall', ref_mpnews.to_json, params: { access_token: 'access_token' }).and_return(result)
+      expect(subject.message_mass_sendall(Wechat::Message.to_mass(tag_id: 2).image('123dsdajkasd231jhksad'))).to eq(result)
+    end
+    specify 'will post message/mass/sendall with access_token, openid and mpnews media id in json' do
+      ref_mpnews_to_openid = { touser: %w(OPENID1 OPENID2),
+                               send_ignore_reprint: 1,
+                               msgtype: 'mpnews',
+                               mpnews: { media_id: '123dsdajkasd231jhksad' } }
+      result = { errcode: 0, errmsg: 'send job submission success',
+                 msg_id: 34182, msg_data_id: 206227730 }
+      expect(subject.client).to receive(:post).with('message/mass/sendall', ref_mpnews_to_openid.to_json, params: { access_token: 'access_token' }).and_return(result)
+      expect(subject.message_mass_sendall(Wechat::Message.to(['OPENID1', 'OPENID2'], send_ignore_reprint: 1).ref_mpnews('123dsdajkasd231jhksad'))).to eq(result)
+    end
+  end
+
+  describe '#message_mass_delete' do
+    specify 'will post message/mass/delete with access_token and msg_id' do
+      mass_delete_req = { msg_id: 30124 }
+      mass_delete_result = { errcode: 0, errmsg: 'ok' }
+      expect(subject.client).to receive(:post)
+        .with('message/mass/delete', JSON.generate(mass_delete_req), params: { access_token: 'access_token' }).and_return(mass_delete_result)
+      expect(subject.message_mass_delete(30124)).to eq mass_delete_result
+    end
+  end
+
+  describe '#message_mass_preview' do
+    specify 'will post message/mass/preview with access_token, openid and mpnews media id in json' do
+      ref_mpnews_to_openid = { touser: 'OPENID',
+                               msgtype: 'mpnews',
+                               mpnews: { media_id: '123dsdajkasd231jhksad' } }
+      result = { errcode: 0, errmsg: 'preview success', msg_id: 34182 }
+      expect(subject.client).to receive(:post).with('message/mass/preview', ref_mpnews_to_openid.to_json, params: { access_token: 'access_token' }).and_return(result)
+      expect(subject.message_mass_preview(Wechat::Message.to('OPENID').ref_mpnews('123dsdajkasd231jhksad'))).to eq(result)
+    end
+    specify 'will post message/mass/preview with access_token, towxname and mpnews media id in json' do
+      ref_mpnews_to_openid = { towxname: '示例的微信号',
+                               msgtype: 'mpnews',
+                               mpnews: { media_id: '123dsdajkasd231jhksad' } }
+      result = { errcode: 0, errmsg: 'preview success', msg_id: 34182 }
+      expect(subject.client).to receive(:post).with('message/mass/preview', ref_mpnews_to_openid.to_json, params: { access_token: 'access_token' }).and_return(result)
+      expect(subject.message_mass_preview(Wechat::Message.to(towxname: '示例的微信号').ref_mpnews('123dsdajkasd231jhksad'))).to eq(result)
+    end
+  end
+
+  describe '#message_mass_get' do
+    specify 'will post message/mass/get with access_token and msg_id' do
+      mass_get_req = { msg_id: 201053012 }
+      mass_get_result = { msg_id: 201053012, msg_status: 'SEND_SUCCESS' }
+      expect(subject.client).to receive(:post)
+        .with('message/mass/get', JSON.generate(mass_get_req), params: { access_token: 'access_token' }).and_return(mass_get_result)
+      expect(subject.message_mass_get(201053012)).to eq mass_get_result
+    end
+  end
+
+  describe '#wxa_get_wxacode' do
+    wxacode_result = { errcode: 0, errmsg: 'ok',
+                       url: 'wxa_code_pic_url' }
+
+    specify 'will post wxa_get_wxacode with path, width and access_token' do
+      path = 'pages/index?query=1'
+      wxa_get_wxacode_req = { path: path, width: 430 }
+      expect(subject.client).to receive(:post)
+        .with('getwxacode', JSON.generate(wxa_get_wxacode_req),
+              params: { access_token: 'access_token' }, base: Wechat::Api::WXA_BASE).and_return(wxacode_result)
+      expect(subject.wxa_get_wxacode(path)).to eq wxacode_result
+    end
+  end
+
+  describe '#wxa_create_qrcode' do
+    qrcode_result = { errcode: 0, errmsg: 'ok',
+                      url: 'qr_code_pic_url' }
+
+    specify 'will post wxa_create_qrcode with path, width and access_token' do
+      path = 'pages/index?query=1'
+      wxa_create_qrcode_req = { path: path, width: 430 }
+      expect(subject.client).to receive(:post)
+        .with('wxaapp/createwxaqrcode', JSON.generate(wxa_create_qrcode_req), params: { access_token: 'access_token' }).and_return(qrcode_result)
+      expect(subject.wxa_create_qrcode(path)).to eq qrcode_result
+    end
+  end
+
   describe '#menu' do
     specify 'will get menu/get with access_token' do
       menu_result = 'menu_result'
@@ -262,6 +361,17 @@ RSpec.describe Wechat::Api do
     end
   end
 
+  describe '#media_hq' do
+    specify 'will get media/get/jssdk with access_token and media_id at file based api endpoint as file' do
+      media_hq_result = 'raw speex file format' # http://speex.org/
+
+      expect(subject.client).to receive(:get)
+        .with('media/get/jssdk', params: { access_token: 'access_token', media_id: 'media_id' },
+                                 as: :file).and_return(media_hq_result)
+      expect(subject.media_hq('media_id')).to eq(media_hq_result)
+    end
+  end
+
   describe '#media_create' do
     specify 'will post media/upload with access_token, type and media payload at file based api endpoint' do
       file = 'README.md'
@@ -269,6 +379,46 @@ RSpec.describe Wechat::Api do
         .with('media/upload', file,
               params: { type: 'image', access_token: 'access_token' }).and_return(true)
       expect(subject.media_create('image', file)).to be true
+    end
+  end
+
+  describe '#media_uploadnews' do
+    let(:items) do
+      [
+        { thumb_media_id: 'qI6_Ze_6PtV7svjolgs-rN6stStuHIjs9_DidOHaj0Q-mwvBelOXCFZiq2OsIU-p',
+          author: 'xxx', title: 'Happy Day', content_source_url: 'www.qq.com',
+          content: 'content', digest: 'digest', show_cover_pic: 1 },
+        { thumb_media_id: 'qI6_Ze_6PtV7svjolgs-rN6stStuHIjs9_DidOHaj0Q-mwvBelOXCFZiq2OsIU-p',
+          author: 'xxx', title: 'Happy Day', content_source_url: 'www.qq.com',
+          content: 'content', digest: 'digest', show_cover_pic: 0 }
+      ]
+    end
+    specify 'will post media/media_uploadnews with access_token and mpnews in json' do
+      mpnews = {
+        articles: [
+          {
+            thumb_media_id: 'qI6_Ze_6PtV7svjolgs-rN6stStuHIjs9_DidOHaj0Q-mwvBelOXCFZiq2OsIU-p',
+            title: 'Happy Day',
+            content: 'content',
+            author: 'xxx',
+            content_source_url: 'www.qq.com',
+            digest: 'digest',
+            show_cover_pic: 1
+          },
+          {
+            thumb_media_id: 'qI6_Ze_6PtV7svjolgs-rN6stStuHIjs9_DidOHaj0Q-mwvBelOXCFZiq2OsIU-p',
+            title: 'Happy Day',
+            content: 'content',
+            author: 'xxx',
+            content_source_url: 'www.qq.com',
+            digest: 'digest',
+            show_cover_pic: 0
+          }
+        ]
+      }
+      result = { type: 'news', media_id: 'CsEf3ldqkAYJAU6EJeIkStVDSvffUJ54vqbThMgplD-VJXXof6ctX5fI6-aYyUiQ', created_at: 1391857799 }
+      expect(subject.client).to receive(:post).with('media/uploadnews', mpnews.to_json, params: { access_token: 'access_token' }).and_return(result)
+      expect(subject.media_uploadnews(Wechat::Message.new(MsgType: 'mpnews').mpnews(items))).to eq(result)
     end
   end
 
@@ -320,8 +470,9 @@ RSpec.describe Wechat::Api do
     specify 'will post material/del_material with access_token and media_id in payload' do
       media_id = 'media_id'
       material_delete_result = { errcode: 0, errmsg: 'deleted' }
+      payload = { media_id: media_id }
       expect(subject.client).to receive(:post)
-        .with('material/del_material', { media_id: media_id },
+        .with('material/del_material', payload.to_json,
               params: { access_token: 'access_token' }).and_return(material_delete_result)
       expect(subject.material_delete(media_id)).to eq material_delete_result
     end

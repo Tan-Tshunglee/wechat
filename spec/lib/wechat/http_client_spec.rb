@@ -17,6 +17,13 @@ RSpec.describe Wechat::HttpClient do
     double 'json', response_params.merge(body: { result: 'success' }.to_json,
                                          headers: { content_type: 'application/json' })
   end
+  let(:response_json_as_text_plain) do
+    double 'json', response_params.merge(body: { result: 'success' }.to_json)
+  end
+  let(:response_xml) do
+    double 'xml', response_params.merge(body: '<xml><result_code>SUCCESS</result_code></xml>',
+                                        headers: { content_type: 'text/html' })
+  end
   let(:response_image) { double 'image', response_params.merge(body: 'image data', headers: { content_type: 'image/gif' }) }
 
   describe '#get' do
@@ -42,6 +49,17 @@ RSpec.describe Wechat::HttpClient do
       end
 
       subject.send(:request, 'token', params: { access_token: '1234' }, &block)
+    end
+
+    specify 'will add accept=>:xml for request' do
+      block = lambda do |url, headers|
+        expect(url).to eq('http://host/token')
+        expect(headers).to eq(params: { access_token: '1234' }, 'Accept' => 'application/json')
+        response_xml
+      end
+
+      return_hash_by_xml = subject.send(:request, 'token', params: { access_token: '1234' }, as: :xml, &block)
+      expect(return_hash_by_xml).to include('xml' => { 'result_code' => 'SUCCESS' })
     end
 
     specify 'will use base option to construct url' do
@@ -73,9 +91,35 @@ RSpec.describe Wechat::HttpClient do
         expect(subject.send(:request, 'image') { response_image }).to be_a(Tempfile)
       end
 
+      specify 'will return response body as file for audio' do
+        response_audio = double 'audio', response_params.merge(body: 'stream', headers: { content_type: 'audio/amr' })
+        expect(subject.send(:request, 'media') { response_audio }).to be_a(Tempfile)
+      end
+
+      specify 'will return response body as file for speex' do
+        response_speex = double 'speex', response_params.merge(body: 'stream', headers: { content_type: 'voice/speex' })
+        expect(subject.send(:request, 'media') { response_speex }).to be_a(Tempfile)
+      end
+
       specify 'will return response body as file for unknown content_type' do
         response_stream = double 'image', response_params.merge(body: 'stream', headers: { content_type: 'stream' })
         expect(subject.send(:request, 'image', as: :file) { response_stream }).to be_a(Tempfile)
+      end
+    end
+
+    context 'parse content_type of text/plain' do
+      specify 'will return response body as json for text/plain content_type' do
+        expect(subject.send(:request, 'json') { response_json_as_text_plain }).to be_a(Hash)
+      end
+
+      specify 'raise ResponseError given response has error json with content_type of text/plain' do
+        allow(response_json_as_text_plain).to receive(:body).and_return({ errcode: 40007, errmsg: 'invalid media_id' }.to_json)
+        expect { subject.send(:request, 'media', as: :file) { response_json_as_text_plain } }.to raise_error(Wechat::ResponseError)
+      end
+
+      specify 'will fallback to user-specified format for not json' do
+        allow(response_json_as_text_plain).to receive(:body).and_return('not a json string')
+        expect(subject.send(:request, 'media', as: :file) { response_json_as_text_plain }).to be_a(Tempfile)
       end
     end
 

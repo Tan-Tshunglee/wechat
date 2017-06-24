@@ -71,7 +71,7 @@ RSpec.describe WechatCorpController, type: :controller do
         request.reply.text "echo: #{content}"
       end
 
-      on :text, with: 'mpnews' do |request|
+      on :text, with: 'news' do |request|
         request.reply.news(0...1) do |article|
           article.item title: 'title', description: 'desc', pic_url: 'http://www.baidu.com/img/bdlogo.gif', url: 'http://www.baidu.com/'
         end
@@ -152,8 +152,8 @@ RSpec.describe WechatCorpController, type: :controller do
         expect(message['Content']).to eq 'echo: hello'
       end
 
-      it 'on mpnews' do
-        post :create, params: signature_params(MsgType: 'text', Content: 'mpnews')
+      it 'on news' do
+        post :create, params: signature_params(MsgType: 'text', Content: 'news')
         expect(response.code).to eq '200'
         expect(response.body.empty?).to eq false
 
@@ -283,7 +283,10 @@ RSpec.describe WechatCorpController, type: :controller do
       end
 
       describe 'oauth2_page' do
-        before(:each) { routes.draw { get 'oauth2_page', to: 'wechat_corp#oauth2_page' } }
+        before(:each) do
+          routes.draw { get 'oauth2_page', to: 'wechat_corp#oauth2_page' }
+          allow(controller.wechat.jsapi_ticket).to receive(:oauth2_state) {'oauth2_state'}
+        end
 
         it 'will redirect_to tencent page at first visit' do
           get :oauth2_page
@@ -294,7 +297,7 @@ RSpec.describe WechatCorpController, type: :controller do
           oauth2_result = { 'UserId' => 'userid', 'DeviceId' => 'deviceid' }
           expect(controller.wechat).to receive(:getuserinfo)
             .with('code_id').and_return(oauth2_result)
-          get :oauth2_page, params: { code: 'code_id' }
+          get :oauth2_page, params: { code: 'code_id', state: 'oauth2_state' }
           expect(response.body).to eq 'userid'
           expect(cookies.signed_or_encrypted[:we_deviceid]).to eq 'deviceid'
         end

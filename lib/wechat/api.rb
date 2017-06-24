@@ -6,6 +6,7 @@ require 'wechat/ticket/public_jsapi_ticket'
 module Wechat
   class Api < ApiBase
     API_BASE = 'https://api.weixin.qq.com/cgi-bin/'.freeze
+    WXA_BASE = 'https://api.weixin.qq.com/wxa/'.freeze
 
     def initialize(appid, secret, token_file, timeout, skip_verify_ssl, jsapi_ticket_file)
       @client = HttpClient.new(API_BASE, timeout, skip_verify_ssl)
@@ -62,7 +63,7 @@ module Wechat
 
     def qrcode_create_limit_scene(scene_id_or_str)
       case scene_id_or_str
-      when Fixnum
+      when Integer
         post 'qrcode/create', JSON.generate(action_name: 'QR_LIMIT_SCENE',
                                             action_info: { scene: { scene_id: scene_id_or_str } })
       else
@@ -73,6 +74,30 @@ module Wechat
 
     def shorturl(long_url)
       post 'shorturl', JSON.generate(action: 'long2short', long_url: long_url)
+    end
+
+    def message_mass_sendall(message)
+      post 'message/mass/sendall', message.to_json
+    end
+
+    def message_mass_delete(msg_id)
+      post 'message/mass/delete', JSON.generate(msg_id: msg_id)
+    end
+
+    def message_mass_preview(message)
+      post 'message/mass/preview', message.to_json
+    end
+
+    def message_mass_get(msg_id)
+      post 'message/mass/get', JSON.generate(msg_id: msg_id)
+    end
+
+    def wxa_get_wxacode(path, width = 430)
+      post 'getwxacode', JSON.generate(path: path, width: width), base: WXA_BASE
+    end
+
+    def wxa_create_qrcode(path, width = 430)
+      post 'wxaapp/createwxaqrcode', JSON.generate(path: path, width: width)
     end
 
     def menu
@@ -118,7 +143,7 @@ module Wechat
     end
 
     def material_delete(media_id)
-      post 'material/del_material', media_id: media_id
+      post 'material/del_material', JSON.generate(media_id: media_id)
     end
 
     def custom_message_send(message)

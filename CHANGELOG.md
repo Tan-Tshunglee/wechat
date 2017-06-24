@@ -1,5 +1,64 @@
 # Changelog
 
+## v0.8.10 (released at 6/19/2017)
+
+* fix material_delete correctly.
+
+## v0.8.9 (released at 6/18/2017)
+
+* wechat material_delete failed to work, thanks @Victorialice report #78
+
+## v0.8.8 (released at 5/18/2017)
+
+* Better support multiple account. by @xiewenwei #187
+* Allow load figaro via RAILS_ENV. by @goofansu #186
+
+## v0.8.7 (released at 4/23/2017)
+
+* Support new wxa_get_wxacode API for miniapp.
+* Add InvalidCredentialError, support audio/amr, voice/speex as file and text/plain as json. by @acenqiu #184
+
+## v0.8.6 (released at 3/17/2017)
+
+* Support Rails 5.1 officially.
+* make sure the formfile can be created outside. by @mechiland #181
+
+## v0.8.5 (released at 3/14/2017)
+
+* Support mass send API #176
+* Support new media_hq API
+* Support new createwxaqrcode API for miniapp
+* Fix wechat_responder not proper injected in rails 5 API #165
+* parse response support XML return, by @zhangbin #167
+* WeChat only allow 8 article per one news, by @kikyous #175
+* Store token at cookies, by @jstdoit #174
+
+## v0.8.4 (released at 1/12/2017)
+
+* Support Ruby 2.4.0
+* Add support of Enterprise RedPacket API, by @zhangbin #169
+
+## v0.8.3 (released at 11/26/2016)
+
+* Fix wechat template key has camelCase problem, by @RyanChenDji #159
+* Fix long time of oauth2_state bug for wechat_oauth2 methods, by @IvanChou #162
+
+## v0.8.2 (released at 11/2/2016)
+
+* Bug which if not using multi-account but using web login.
+
+## v0.8.1 (released at 11/2/2016)
+
+* After allow sub controller using wechat_api, it's possible not initialise at first time. by @IvanChou #155
+* Support web application login scope snsapi_login.
+* Add unionid support for public account.
+* Remove OpenId in Enterprise OAuth2 as it's not supported by Tecent.
+
+## v0.8.0 (released at 10/24/2016)
+
+* Complete support multi-wechat public account. by @xiewenwei #150
+* Support loading configure value from Figaro if application.yml exist.
+
 ## v0.7.20 (released at 8/29/2016)
 
 * Apply opt and config together when loading controller_wechat, to simplify wechat_responder params. by @bzhang443 #147
@@ -16,7 +75,7 @@
 
 ## v0.7.17 (released at 8/18/2016)
 
-* Allow declare wechat_api at ApplicationController, but using wechat at sub controller. #104 
+* Allow declare wechat_api at ApplicationController, but using wechat at sub controller. #104
 
 ## v0.7.16 (released at 7/27/2016)
 
@@ -94,9 +153,9 @@
 * Optional session support by @zfben #81, #88, #91
 * Replace after_wechat_response with Rails Nofications facility, by @zfben, original issue is #79
 * New user_batchget API. #89
-* Support Rails 3.2 again after support Rails 5.0. by @guange2015 #87 
+* Support Rails 3.2 again after support Rails 5.0. by @guange2015 #87
 * Fetch setting from RAILS_ENV first, then fetch default. by @kikyous #85
-* Warning not support on :scan with regular expression, reason see #84 
+* Warning not support on :scan with regular expression, reason see #84
 
 ## v0.7.1 (released at 1/11/2016)
 
@@ -110,9 +169,9 @@
 
 ## v0.6.10 (released at 1/17/2016)
 
-* Support Rails 3.2 again after support Rails 5.0. by @guange2015 #87 
+* Support Rails 3.2 again after support Rails 5.0. by @guange2015 #87
 * Fetch setting from RAILS_ENV first, then fetch default. by @kikyous #85
-* Warning not support on :scan with regular expression. by @kikyous #84 
+* Warning not support on :scan with regular expression. by @kikyous #84
 
 ## v0.6.9 (released at 1/6/2016)
 
@@ -172,7 +231,7 @@
 * Scan 2D barcode using new syntax `on :scan, with: 'BINDING_QR_CODE' ` instead of `on :event, with: 'BINDING_QR_CODE' ` in previous version #55
   Which will fix can not using `on :event, with: "scan" ` problem
 * Batch job using new syntax `on :batch_job, with: 'replace_user' `
-instead of previous `on :event, with: 'replace_user' `. 
+instead of previous `on :event, with: 'replace_user' `.
 * Click menu support new syntax `on :click, with: 'BOOK_LUNCH' `, but `on :event, with: 'BOOK_LUNCH' ` still supported. perfer `on :click` because it running faster and more nature expression.
 * Wechat::Responder using Hash for new :client and :batch_job event, avoid time consuming Array match responder
 * Fix refresh token not working problem under ruby 2.0.0 #54
@@ -191,7 +250,7 @@ instead of previous `on :event, with: 'replace_user' `.
 
 * Fix wrong number of arguments at Wechat::Responder.on by using arity #47
 * Fix can not access wechat method after using instance level context.
-* Fix skip_verify_ssl parameter error. 
+* Fix skip_verify_ssl parameter error.
 
 ## v0.4.1 (released at 9/6/2015)
 

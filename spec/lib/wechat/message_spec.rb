@@ -39,6 +39,16 @@ RSpec.describe Wechat::Message do
     end
   end
 
+  describe 'to_mass' do
+    let(:message) { Wechat::Message.from_hash(text_request) }
+    specify 'will create base message' do
+      reply = Wechat::Message.to_mass
+      expect(reply).to be_a(Wechat::Message)
+      expect(reply.message_hash).to include(filter: { is_to_all: true })
+      expect(reply.message_hash[:send_ignore_reprint]).to eq 0
+    end
+  end
+
   describe '#reply' do
     let(:message) { Wechat::Message.from_hash(text_request) }
     specify 'will create base response message' do
@@ -190,6 +200,36 @@ RSpec.describe Wechat::Message do
       end
     end
 
+    describe '#mpnews' do
+      let(:items) do
+        [
+          { thumb_media_id: 'qI6_Ze_6PtV7svjolgs-rN6stStuHIjs9_DidOHaj0Q-mwvBelOXCFZiq2OsIU-p',
+            author: 'xxx', title: 'Happy Day', content_source_url: 'www.qq.com',
+            content: 'content', digest: 'digest', show_cover_pic: 1 },
+          { thumb_media_id: 'qI6_Ze_6PtV7svjolgs-rN6stStuHIjs9_DidOHaj0Q-mwvBelOXCFZiq2OsIU-p',
+            author: 'xxx', title: 'Happy Day', content_source_url: 'www.qq.com',
+            content: 'content', digest: 'digest', show_cover_pic: 0 }
+        ]
+      end
+
+      after :each do
+        expect(message[:MsgType]).to eq('mpnews')
+        expect(message[:Articles][0][:Title]).to eq 'Happy Day'
+        expect(message[:Articles][0][:Content]).to eq 'content'
+        expect(message[:Articles][0][:ContentSourceUrl]).to eq 'www.qq.com'
+        expect(message[:Articles][0][:ShowCoverPic]).to eq 1
+        expect(message[:Articles][1].key?(:ShowCoverPic)).to eq true
+      end
+
+      specify 'when no block is given, whill take the items argument as an array articals hash' do
+        message.mpnews(items)
+      end
+
+      specify 'will update MesageType, ArticleCount, Articles field and return self' do
+        message.mpnews(items) { |articals, item| articals.item item }
+      end
+    end
+
     describe '#to_xml' do
       let(:response) { Wechat::Message.from_hash(response_base) }
 
@@ -267,7 +307,7 @@ RSpec.describe Wechat::Message do
 
       specify 'can convert music message' do
         request = Wechat::Message.to('toUser')
-                  .music('thumb_media_id', 'music_url', title: 'title', description: 'description', HQ_music_url: 'hq_music_url')
+                                 .music('thumb_media_id', 'music_url', title: 'title', description: 'description', HQ_music_url: 'hq_music_url')
 
         expect(request.to_json).to eq({
           touser: 'toUser',
@@ -284,7 +324,7 @@ RSpec.describe Wechat::Message do
 
       specify 'can convert news message' do
         request = Wechat::Message.to('toUser')
-                  .news([{ title: 'title', description: 'description', url: 'url', pic_url: 'pic_url' }])
+                                 .news([{ title: 'title', description: 'description', url: 'url', pic_url: 'pic_url' }])
 
         expect(request.to_json).to eq({
           touser: 'toUser',
@@ -302,17 +342,47 @@ RSpec.describe Wechat::Message do
         }.to_json)
       end
 
+      specify 'can convert to mass text message' do
+        request = Wechat::Message.to_mass(tag_id: 1).text('mass text content')
+
+        expect(request.to_json).to eq({
+          filter: { is_to_all: false, tag_id: 1 },
+          send_ignore_reprint: 0,
+          msgtype: 'text',
+          text: { content: 'mass text content' }
+        }.to_json)
+      end
+
+      specify 'can convert to mass mpnews message' do
+        request = Wechat::Message.to_mass(send_ignore_reprint: 1).ref_mpnews('mpnews_media_id')
+
+        expect(request.to_json).to eq({
+          filter: { is_to_all: true },
+          send_ignore_reprint: 1,
+          msgtype: 'mpnews',
+          mpnews: { media_id: 'mpnews_media_id' }
+        }.to_json)
+      end
+
       specify 'can convert template message' do
-        request = Wechat::Message.to('toUser')
-                                 .template(template_id: 'template_id', url: 'http://weixin.qq.com/download',
-                                           data: { first: { value: '恭喜你购买成功！' } })
+        request = Wechat::Message.to('toUser').template(template_id: 'template_id',
+                                                        url: 'http://weixin.qq.com/download',
+                                                        data: {
+                                                          first: { value: '恭喜你购买成功！' },
+                                                          orderProductName: { value: '巧克力' },
+                                                          orderMoneySum: { value: '39.8元' },
+                                                          Remark: { value: '欢迎再次购买！' }
+                                                        })
 
         expect(request.to_json).to eq({
           touser: 'toUser',
           template_id: 'template_id',
           url: 'http://weixin.qq.com/download',
           data: {
-            first: { value: '恭喜你购买成功！' }
+            first: { value: '恭喜你购买成功！' },
+            orderProductName: { value: '巧克力' },
+            orderMoneySum: { value: '39.8元' },
+            Remark: { value: '欢迎再次购买！' }
           }
         }.to_json)
       end

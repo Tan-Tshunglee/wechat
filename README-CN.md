@@ -1,7 +1,7 @@
-WeChat [![Gem Version][version-badge]][rubygems] [![Build Status][travis-badge]][travis] [![Code Climate][codeclimate-badge]][codeclimate] [![Code Coverage][codecoverage-badge]][codecoverage]
+WeChat [![Gem Version](https://badge.fury.io/rb/wechat.svg)](https://rubygems.org/gems/wechat) [![Build Status](https://travis-ci.org/Eric-Guo/wechat.svg)](https://travis-ci.org/Eric-Guo/wechat) [![Code Climate](https://codeclimate.com/github/Eric-Guo/wechat.png)](https://codeclimate.com/github/Eric-Guo/wechat) [![Code Coverage](https://codeclimate.com/github/Eric-Guo/wechat/coverage.png)](https://codeclimate.com/github/Eric-Guo/wechat/coverage)
 ======
 
-[![Join the chat][gitter-badge]][gitter] [![Issue Stats][issue-badge]][issuestats] [![PR Stats][pr-badge]][issuestats]
+[![Join the chat](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Eric-Guo/wechat?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 WeChat gem 可以帮助开发者方便地在Rails环境中集成微信[公众平台](https://mp.weixin.qq.com/)和[企业平台](https://qy.weixin.qq.com)提供的服务，包括：
 
@@ -162,7 +162,28 @@ development:
 
 test:
   <<: *default
+
+ # Multiple Accounts
+ #
+ # wx2_development:
+ #  <<: *default
+ #  appid: "my_appid"
+ #  secret: "my_secret"
+ #  access_token: "tmp/wechat_access_token2"
+ #  jsapi_ticket: "tmp/wechat_jsapi_ticket2"
+ #
+ # wx2_test:
+ #  <<: *default
+ #  appid: "my_appid"
+ #  secret: "my_secret"
+ #
+ # wx2_production:
+ #  <<: *default
+ #  appid: "my_appid"
+ #  secret: "my_secret"
 ```
+
+进一步的多账号支持参见[PR 150](https://github.com/Eric-Guo/wechat/pull/150)。
 
 ##### 配置优先级
 
@@ -179,6 +200,16 @@ Wechat服务器有报道曾出现[RestClient::SSLCertificateNotVerified](http://
 #### 为每个Responder配置不同的appid和secret
 
 有些情况下，单个Rails应用可能需要处理来自多个微信公众号的消息，您可以通过在`wechat_responder`和`wechat_api`后配置多个相关参数来支持多账号。
+
+```ruby
+class WechatFirstController < ActionController::Base
+   wechat_responder account: :new_account
+
+   on :text, with:"help", respond: "help content"
+end
+```
+
+或者直接完整配置
 
 ```ruby
 class WechatFirstController < ActionController::Base
@@ -258,7 +289,7 @@ wechat gems 内部不会检查权限。但因公众号类型不同，和微信�
 
 ```
 $ wechat
-Wechat commands:
+Wechat Public Account commands:
   wechat callbackip                                        # 获取微信服务器IP地址
   wechat custom_image [OPENID, IMAGE_PATH]                 # 发送图片客服消息
   wechat custom_music [OPENID, THUMBNAIL_PATH, MUSIC_URL]  # 发送音乐客服消息
@@ -277,14 +308,19 @@ Wechat commands:
   wechat material_delete [MEDIA_ID]                        # 删除永久素材
   wechat material_list [TYPE, OFFSET, COUNT]               # 获取永久素材列表
   wechat media [MEDIA_ID, PATH]                            # 媒体下载
+  wechat media_hq [MEDIA_ID, PATH]                         # 高清音频下载
   wechat media_create [MEDIA_TYPE, PATH]                   # 媒体上传
   wechat media_uploadimg [IMAGE_PATH]                      # 上传图文消息内的图片
+  wechat media_uploadnews [MPNEWS_YAML_PATH]               # 上传图文消息素材
   wechat menu                                              # 当前菜单
   wechat menu_addconditional [CONDITIONAL_MENU_YAML_PATH]  # 创建个性化菜单
   wechat menu_create [MENU_YAML_PATH]                      # 创建菜单
   wechat menu_delconditional [MENU_ID]                     # 删除个性化菜单
   wechat menu_delete                                       # 删除菜单
   wechat menu_trymatch [USER_ID]                           # 测试个性化菜单匹配结果
+  wechat message_mass_delete [MSG_ID]                      # 删除群发消息
+  wechat message_mass_get [MSG_ID]                         # 查询群发消息发送状态
+  wechat message_mass_preview [WX_NAME, MPNEWS_MEDIA_ID]   # 预览图文消息素材
   wechat qrcode_create_limit_scene [SCENE_ID_OR_STR]       # 请求永久二维码
   wechat qrcode_create_scene [SCENE_ID, EXPIRE_SECONDS]    # 请求临时二维码
   wechat qrcode_download [TICKET, QR_CODE_PIC_PATH]        # 通过ticket下载二维码
@@ -303,12 +339,13 @@ Wechat commands:
   wechat user_group [OPEN_ID]                              # 查询用户所在分组
   wechat user_update_remark [OPEN_ID, REMARK]              # 设置备注名
   wechat users                                             # 关注者列表
+  wechat wxacode_download [WXA_CODE_PIC_PATH, PATH, WIDTH] # 下载小程序码
 ```
 
 #### 企业号命令行
 ```
 $ wechat
-Wechat commands:
+Wechat Enterprise Account commands:
   wechat agent [AGENT_ID]                                  # 获取企业号应用详情
   wechat agent_list                                        # 获取应用概况列表
   wechat batch_job_result [JOB_ID]                         # 获取异步任务结果
@@ -472,19 +509,19 @@ template:
   data:
     first:
       value: "您好，您已报名成功"
-      color: "#0A0A0A"      
+      color: "#0A0A0A"
     keynote1:
       value: "XX活动"
-      color: "#CCCCCC"      
+      color: "#CCCCCC"
     keynote2:
       value: "2014年9月16日"
-      color: "#CCCCCC"     
+      color: "#CCCCCC"
     keynote3:
       value: "上海徐家汇xxx城"
-      color: "#CCCCCC"                 
+      color: "#CCCCCC"
     remark:
       value: "欢迎再次使用。"
-      color: "#173177"          
+      color: "#173177"
 
 ```
 
@@ -549,7 +586,7 @@ class WechatsController < ActionController::Base
 
   # 当请求的文字信息内容为'<n>条新闻'时, 使用这个responder处理, 并将n作为第二个参数
   on :text, with: /^(\d+)条新闻$/ do |request, count|
-    # 微信最多显示10条新闻，大于10条将只取前10条
+    # 微信最多显示8条新闻，大于8条将只取前8条
     news = (1..count.to_i).each_with_object([]) { |n, memo| memo << { title: '新闻标题', content: "第#{n}条新闻的内容#{n.hash}" } }
     request.reply.news(news) do |article, n, index| # 回复"articles"
       article.item title: "#{index} #{n[:title]}", description: n[:content], pic_url: 'http://www.baidu.com/img/bdlogo.gif', url: 'http://www.baidu.com/'
@@ -619,7 +656,7 @@ class WechatsController < ActionController::Base
   # 处理地理位置消息
   on :label_location do |request|
     request.reply.text("Label: #{request[:Label]} Location_X: #{request[:Location_X]} Location_Y: #{request[:Location_Y]} Scale: #{request[:Scale]}")
-  end  
+  end
 
   # 处理上报地理位置事件
   on :location do |request|
@@ -654,6 +691,12 @@ class WechatsController < ActionController::Base
   # 当异步任务全量覆盖部门完成时推送
   on :batch_job, with: 'replace_party' do |request, batch_job|
     request.reply.text "job #{batch_job[:JobId]} finished, return code #{batch_job[:ErrCode]}, return message #{batch_job[:ErrMsg]}"
+  end
+
+  # 事件推送群发结果
+  on :event, with: 'masssendjobfinish' do |request|
+    # https://mp.weixin.qq.com/wiki?action=doc&id=mp1481187827_i0l21&t=0.03571905015619936#8
+    request.reply.success # request is XML result hash.
   end
 
   # 当无任何responder处理用户信息时,使用这个responder处理
@@ -720,17 +763,3 @@ end
 * 企业号接受菜单消息时，Wechat腾讯服务器无法解析部分域名，请使用IP绑定回调URL，用户的普通消息目前不受影响。
 * 企业号全量覆盖成员使用的csv通讯录格式，直接将下载的模板导入[是不工作的](http://qydev.weixin.qq.com/qa/index.php?qa=13978)，必须使用Excel打开，然后另存为csv格式才会变成合法格式。
 * 如果使用nginx+unicron部署方案，并且使用了https，必须设置`trusted_domain_fullname`为https，否则会导致JS-SDK签名失效。
-
-[version-badge]: https://badge.fury.io/rb/wechat.svg
-[rubygems]: https://rubygems.org/gems/wechat
-[travis-badge]: https://travis-ci.org/Eric-Guo/wechat.svg
-[travis]: https://travis-ci.org/Eric-Guo/wechat
-[codeclimate-badge]: https://codeclimate.com/github/Eric-Guo/wechat.png
-[codeclimate]: https://codeclimate.com/github/Eric-Guo/wechat
-[codecoverage-badge]: https://codeclimate.com/github/Eric-Guo/wechat/coverage.png
-[codecoverage]: https://codeclimate.com/github/Eric-Guo/wechat/coverage
-[gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
-[gitter]: https://gitter.im/Eric-Guo/wechat?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
-[issue-badge]: http://issuestats.com/github/Eric-Guo/wechat/badge/issue
-[pr-badge]: http://issuestats.com/github/Eric-Guo/wechat/badge/pr
-[issuestats]: http://issuestats.com/github/Eric-Guo/wechat
